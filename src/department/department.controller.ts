@@ -15,14 +15,49 @@ import { Department } from './department.model';
 export class DepartmentController {
   constructor(private readonly departmentService: DepartmentService) {}
 
-  @Post()
-  create(@Body() data: Partial<Department>) {
-    return this.departmentService.create(data);
+  // @Post()
+  // create(@Body() data: { name: string; designation: string }) {
+  //   return this.departmentService.createDepartment(data.name, data.designation);
+  // }
+  
+  // @Post('create') // This will handle POST requests to /departments/create
+  // async createDepartment(
+  //   @Body() body: { name: string; designation: string }, // Expecting name and designation in the body
+  // ): Promise<Department> {
+  //   const { name, designation } = body;
+  //   try {
+  //     return await this.departmentService.createDepartment(name, designation);
+  //   } catch (error) {
+  //     throw new Error(`Failed to create department: ${error.message}`);
+  //   }
+  // }
+
+  @Post('create') // POST request to create a new department
+  async createDepartment(
+    @Body() body: { name: string; designation: string }, // Request body with name and designation
+  ): Promise<Department> {
+    const { name, designation } = body;
+    try {
+      const department = await this.departmentService.createDepartment(name, designation);
+      return department; // If successful, return the created department object
+    } catch (error) {
+      // If there is an error, throw it with a message
+      throw new Error(`Failed to create department: ${error.message}`);
+    }
   }
 
+  // @Get()
+  // findAll() 
+  //   return this.departmentService.findAll();
+  // }
+
   @Get()
-  findAll() {
-    return this.departmentService.findAll();
+  async findAll() {
+    // Call the findAll method from the service
+    const departments = await this.departmentService.findAll();
+    
+    // Return the result
+    return { data: departments };
   }
 
 

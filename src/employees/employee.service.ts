@@ -23,6 +23,8 @@ import { UserToken } from './user-token.model';
 import * as jwt from 'jsonwebtoken';
 import { SalarySlip } from 'src/Salary/salary-slip.model';
 import { Sequelize } from 'sequelize-typescript';
+import { QueryTypes } from 'sequelize';
+
 
 @Injectable()
 export class EmployeeService {
@@ -355,52 +357,78 @@ export class EmployeeService {
     await employee.destroy();
   }
 
-  // Assign a random company and image to a specific employee
-  async assignRandomCompanyAndImage(employeeId: number): Promise<Employee> {
+  // // Assign a random company and image to a specific employee
+  // async assignRandomCompanyAndImage(employeeId: number): Promise<Employee> {
+  //   const companies = await this.companyModel.findAll();
+  //   const images = await this.imageModel.findAll();
+
+  //   if (!companies.length || !images.length) {
+  //     throw new Error('No companies or images found.');
+  //   }
+
+  //   const randomCompany =
+  //     companies[Math.floor(Math.random() * companies.length)];
+  //   const randomImage = images[Math.floor(Math.random() * images.length)];
+
+  //   const employee = await this.employeeModel.findByPk(employeeId);
+  //   if (employee) {
+  //     employee.companyId = randomCompany.id;
+  //     // employee.imageId = randomImage.id;
+  //     await employee.save();
+  //   }
+
+  //   return employee;
+  // }
+
+  async assignRandomCompany(employeeId: number): Promise<Employee> {
+    // Fetch all companies
     const companies = await this.companyModel.findAll();
-    const images = await this.imageModel.findAll();
-
-    if (!companies.length || !images.length) {
-      throw new Error('No companies or images found.');
+  
+    // Check if companies exist
+    if (!companies.length) {
+      throw new Error('No companies found.');
     }
-
-    const randomCompany =
-      companies[Math.floor(Math.random() * companies.length)];
-    const randomImage = images[Math.floor(Math.random() * images.length)];
-
+  
+    // Pick a random company
+    const randomCompany = companies[Math.floor(Math.random() * companies.length)];
+  
+    // Find employee
     const employee = await this.employeeModel.findByPk(employeeId);
-    if (employee) {
-      employee.companyId = randomCompany.id;
-      // employee.imageId = randomImage.id;
-      await employee.save();
+    if (!employee) {
+      throw new Error(`Employee with ID ${employeeId} not found.`);
     }
-
+  
+    // Assign only company
+    employee.companyId = randomCompany.id;
+    await employee.save();
+  
     return employee;
   }
+  
 
-  // Assign a random company and image to every employee
-  async assignRandomCompanyAndImageToAllEmployees(): Promise<Employee[]> {
-    const companies = await this.companyModel.findAll();
-    const images = await this.imageModel.findAll();
+  // // Assign a random company and image to every employee
+  // async assignRandomCompanyAndImageToAllEmployees(): Promise<Employee[]> {
+  //   const companies = await this.companyModel.findAll();
+  //   const images = await this.imageModel.findAll();
 
-    if (!companies.length || !images.length) {
-      throw new Error('No companies or images found.');
-    }
+  //   if (!companies.length || !images.length) {
+  //     throw new Error('No companies or images found.');
+  //   }
 
-    const employees = await this.employeeModel.findAll();
+  //   const employees = await this.employeeModel.findAll();
 
-    for (const employee of employees) {
-      const randomCompany =
-        companies[Math.floor(Math.random() * companies.length)];
-      // const randomImage = images[Math.floor(Math.random() * images.length)];
+  //   for (const employee of employees) {
+  //     const randomCompany =
+  //       companies[Math.floor(Math.random() * companies.length)];
+  //     // const randomImage = images[Math.floor(Math.random() * images.length)];
 
-      employee.companyId = randomCompany.id;
-      // employee.imageId = randomImage.id;
-      await employee.save();
-    }
+  //     employee.companyId = randomCompany.id;
+  //     // employee.imageId = randomImage.id;
+  //     await employee.save();
+  //   }
 
-    return employees;
-  }
+  //   return employees;
+  // }
 
   // Get random unique employees
   async getUniqueRandomEmployees(count: number): Promise<Employee[]> {
@@ -514,31 +542,74 @@ export class EmployeeService {
         where: { companyId: companyId },
       });
     }
-    async generateSalarySlip(employeeId: number, month: string, basicSalary: number) {
-      const employee = await this.employeeModel.findByPk(employeeId);
-      if (!employee) {
-        throw new NotFoundException('Employee not found');
-      }
+//     async generateSalarySlip(employeeId: number, month: string, basicSalary: number) {
+//       const employee = await this.employeeModel.findByPk(employeeId);
+//       if (!employee) {
+//         throw new NotFoundException('Employee not found');
+//       }
   
-      // Call the PostgreSQL function
-      const query = `SELECT * FROM calculate_tax_deductions(:basicSalary)`;
-      const [result] = await this.sequelize.query(query);
+//       // Call the PostgreSQL function
+//       const query = `SELECT * FROM calculate_tax_deductions(:basicSalary)`;
+//       const [result] = await this.sequelize.query(query);
+      
+// // Ensure the result is treated as an array of objects
+// const salaryData = (result as any[])[0]; 
 
-// Ensure the result is treated as an array of objects
-const salaryData = (result as any[])[0]; 
+// if (!salaryData) {
+//   throw new Error("No salary data found.");
+// }
 
-if (!salaryData) {
-  throw new Error("No salary data found.");
+// return {
+//   tax_amount: salaryData.tax_amount,
+//   pf_amount: salaryData.pf_amount,
+//   professional_tax: salaryData.professional_tax,
+//   total_deductions: salaryData.total_deductions,
+//   net_salary: salaryData.net_salary,
+// };
+//     }
+
+
+async generateSalarySlip(employeeId: number, month: string, basicSalary: number) {
+  // Check if employee exists
+  const employee = await this.employeeModel.findByPk(employeeId);
+  if (!employee) {
+    throw new NotFoundException('Employee not found');
+  }
+
+  // Call the PostgreSQL function correctly
+  const query = `SELECT * FROM calculate_tax_deductions(:basicSalary)`;
+  const [results] = await this.sequelize.query(query, {
+    replacements: { basicSalary },
+    type: QueryTypes.SELECT, // ✅ Ensure correct type
+  });
+
+  // ✅ Cast results to expected structure
+  const salaryData = results as {
+    tax_amount: number;
+    pf_amount: number;
+    professional_tax: number;
+    total_deductions: number;
+    net_salary: number;
+  };
+
+  // Ensure the result is properly extracted
+  if (!salaryData) {
+    throw new Error("No salary data found.");
+  }
+
+  return {
+    employeeId,
+    month,
+    basicSalary,
+    tax_amount: salaryData.tax_amount,
+    pf_amount: salaryData.pf_amount,
+    professional_tax: salaryData.professional_tax,
+    total_deductions: salaryData.total_deductions,
+    net_salary: salaryData.net_salary,
+  };
 }
 
-return {
-  tax_amount: salaryData.tax_amount,
-  pf_amount: salaryData.pf_amount,
-  professional_tax: salaryData.professional_tax,
-  total_deductions: salaryData.total_deductions,
-  net_salary: salaryData.net_salary,
-};
-    }
+
   
   
     async getSalarySlipsByEmployee(employeeId: number) {

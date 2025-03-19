@@ -15,6 +15,7 @@ import {
   HttpStatus,
   Patch,
   ParseIntPipe,
+  NotFoundException,
 } from '@nestjs/common';
 import { EmployeeService } from './employee.service';
 import { Response } from 'express';
@@ -120,18 +121,24 @@ export class EmployeeController {
     }
     return await this.employeeService.getUniqueRandomEmployees(count);
   }
+  // @Post(':id/assign-random')
+  // async assignRandomCompanyAndImage(
+  //   @Param('id') employeeId: number,
+  // ): Promise<Employee> {
+  //   return this.employeeService.assignRandomCompanyAndImage(employeeId);
+  // }
+
   @Post(':id/assign-random')
-  async assignRandomCompanyAndImage(
-    @Param('id') employeeId: number,
-  ): Promise<Employee> {
-    return this.employeeService.assignRandomCompanyAndImage(employeeId);
+  async assignRandomCompany(@Param('id') employeeId: number): Promise<Employee> {
+    return this.employeeService.assignRandomCompany(employeeId);
   }
 
-  // Assign a random company and image to every employee
-  @Post('assign-random-to-all')
-  async assignRandomCompanyAndImageToAll(): Promise<Employee[]> {
-    return this.employeeService.assignRandomCompanyAndImageToAllEmployees();
-  }
+  // // Assign a random company and image to every employee
+  // @Post('assign-random-to-all')
+  // async assignRandomCompanyAndImageToAll(): Promise<Employee[]> {
+  //   return this.employeeService.assignRandomCompanyAndImageToAllEmployees();
+  // }
+
 
   @Post('register')
   async register(
@@ -188,12 +195,27 @@ export class EmployeeController {
       return { totalEmployees: await this.employeeService.getTotalEmployeesByCompany(companyId) };
     }
 
-    @Post('generate-salary-slip')
+  //   @Post('generate-salary-slip')
+  // async generateSalarySlip(
+  //   @Body('employeeId') employeeId: number,
+  //   @Body('month') month: string,
+  //   @Body('basicSalary') basicSalary: number,
+  // ) {
+  //   return this.employeeService.generateSalarySlip(employeeId, month, basicSalary);
+  // }
+
+
+
+  @Post('generate-salary-slip')
   async generateSalarySlip(
     @Body('employeeId') employeeId: number,
     @Body('month') month: string,
     @Body('basicSalary') basicSalary: number,
   ) {
+    if (!employeeId || !month || !basicSalary) {
+      throw new NotFoundException('Missing required fields');
+    }
+
     return this.employeeService.generateSalarySlip(employeeId, month, basicSalary);
   }
     @Get('salary-slip/employee/:employeeId')

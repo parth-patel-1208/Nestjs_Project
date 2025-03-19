@@ -1,11 +1,14 @@
 // department.service.ts
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
 import { Department } from './department.model';
 import { Employee } from '../employees/employee.model';
 
 @Injectable()
 export class DepartmentService {
+  create(data: Partial<Department>) {
+    throw new Error('Method not implemented.');
+  }
   constructor(
     @InjectModel(Department)
     private departmentModel: typeof Department,
@@ -14,13 +17,64 @@ export class DepartmentService {
     private readonly employeeModel: typeof Employee,
   ) {}
 
-  async create(data: Partial<Department>) {
-    return this.departmentModel.create(data);
-  }
+  // async createDepartment(name: string, designation: string): Promise<Department> {
+  //   const department = await this.departmentModel.create({
+  //     name,
+  //     designation,
+  //   });
+  //   return department;
+  // }
 
-  async findAll() {
-    return this.departmentModel.findAll({ include: [Employee] });
+  // async create(data: Partial<Department>): Promise<Department> {
+  //   try {
+  //     if ('id' in data) {
+  //       delete data.id; // Remove `id` if it's manually passed
+  //     }
+  //     return await this.departmentModel.create(data);
+  //   } catch (error) {
+  //     console.error('Sequelize Validation Error:', error.errors);
+  //     throw new BadRequestException(error.message);
+  //   }
+  // }
+
+  async createDepartment(name: string, designation: string): Promise<Department> {
+    try {
+      const newDepartment = await this.departmentModel.create({ name, designation });
+      return newDepartment;
+    } catch (error) {
+      console.error('Sequelize Validation Error:', error);
+      if (error instanceof Error) {
+        // If the error is an instance of an Error, log more details
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+      }
+      // For validation error, Sequelize often includes the error details inside error.errors array
+      if (error.errors) {
+        console.error('Validation Errors:', error.errors);
+      }
+      throw new Error(`Error while creating department: ${error.message}`);
+    }
   }
+  
+  
+
+  // async findAll() {
+  //   return this.departmentModel.findAll({ include: [Employee] });
+  // }
+  async findAll() {
+    return this.departmentModel.findAll({
+      include: [
+        {
+          model: Employee,
+          as: 'employees',
+          limit: 10, // Limit to 10 employees per department
+          // offset: 0, // Can be used to paginate employees (e.g., page 1)
+        },
+      ],
+      limit: 100, // Limit to 100 departments
+    });
+  }
+  
 
   // async findOne(id: number) {
   //   return this.departmentModel.findByPk(id, { include: [Employee] });
