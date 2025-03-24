@@ -97,12 +97,22 @@ export class EmployeeController {
   }
 
   // Endpoint to update an existing employee by ID
-  @Put(':id/update')
-  async updateEmployeeById(
+  // @Put(':id/update')
+  // async updateEmployeeById(
+  //   @Param('id') id: number,
+  //   @Body() updateData: Partial<Employee>,
+  // ): Promise<Employee> {
+  //   return await this.employeeService.updateEmployeeById(id, updateData);
+  // }
+
+
+  @Patch(':id/update')
+  async updateEmployee(
     @Param('id') id: number,
-    @Body() updateData: Partial<Employee>,
-  ): Promise<Employee> {
-    return await this.employeeService.updateEmployeeById(id, updateData);
+    @Body() updateData: any, // Use 'any' or a custom type if you want to directly accept raw data
+  ) {
+    const employee = await this.employeeService.updateEmployeeById(id, updateData);
+    return employee;
   }
 
   // Endpoint to delete an employee by ID
@@ -140,13 +150,18 @@ export class EmployeeController {
   // }
 
 
+  // @Post('register')
+  // async register(
+  //   @Body('name') name: string,
+  //   @Body('email') email: string,
+  //   @Body('password') password: string,
+  // ) {
+  //   return this.employeeService.register({ name, email, password });
+  // }
+
   @Post('register')
-  async register(
-    @Body('name') name: string,
-    @Body('email') email: string,
-    @Body('password') password: string,
-  ) {
-    return this.employeeService.register({ name, email, password });
+  async register(@Body() employeeData: Partial<Employee>) {
+    return this.employeeService.register(employeeData);
   }
 
   @Post('login')

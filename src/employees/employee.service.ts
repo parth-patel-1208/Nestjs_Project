@@ -24,6 +24,7 @@ import * as jwt from 'jsonwebtoken';
 import { SalarySlip } from 'src/Salary/salary-slip.model';
 import { Sequelize } from 'sequelize-typescript';
 import { QueryTypes } from 'sequelize';
+import * as nodemailer from 'nodemailer';
 
 
 @Injectable()
@@ -341,13 +342,56 @@ export class EmployeeService {
   }
 
   // Update employee by ID
+  // async updateEmployeeById(
+  //   id: number,
+  //   updateData: Partial<Employee>,
+  // ): Promise<Employee> {
+  //   const employee = await this.employeeModel.findByPk(id);
+  //   if (!employee) throw new NotFoundException('Employee not found.');
+  //   return employee.update(updateData);
+  // }
+
   async updateEmployeeById(
     id: number,
     updateData: Partial<Employee>,
   ): Promise<Employee> {
+    // Find the employee by primary key (id)
     const employee = await this.employeeModel.findByPk(id);
-    if (!employee) throw new NotFoundException('Employee not found.');
-    return employee.update(updateData);
+    if (!employee) {
+      throw new NotFoundException('Employee not found.');
+    }
+
+    // Update the employee data
+    await employee.update(updateData);
+
+    // Send email after updating employee data
+    try {
+      const transporter = nodemailer.createTransport({
+        service: 'gmail', // Use Gmail or another service
+        auth: {
+          user: 'parthpatel3958@gmail.com',
+          pass: 'lfuv vmbm wrks mxgb', // Use an app-specific password if needed
+        },
+        tls: {
+          rejectUnauthorized: false, // Temporarily disable SSL validation (for development)
+        },
+      });
+
+      const mailOptions = {
+        from: 'parthpatel3958@gmail.com',
+        to: employee.email, // Send to the employee's email address
+        subject: 'Employee Data Updated',
+        text: `Dear ${employee.name},\n\nYour employee data has been successfully updated.\n\nBest Regards,\nCompany Team`,
+      };
+
+      await transporter.sendMail(mailOptions);
+      console.log('Email sent successfully');
+    } catch (error) {
+      console.error('Error sending email:', error);
+      throw new BadRequestException('Failed to send update email');
+    }
+
+    return employee;
   }
 
   // Delete employee by ID
@@ -438,30 +482,81 @@ export class EmployeeService {
   }
 
   // Employee Registration
-  async register(
-    employeeData: Partial<Employee>,
-  ): Promise<{ message: string }> {
-    const { email, password } = employeeData;
+  // async register(
+  //   employeeData: Partial<Employee>,
+  // ): Promise<{ message: string }> {
+  //   const { email, password } = employeeData;
 
+  //   if (!email || !password) {
+  //     throw new BadRequestException('Email and password are required');
+  //   }
+
+  //   const existingEmployee = await this.employeeModel.findOne({
+  //     where: { email },
+  //   });
+  //   if (existingEmployee) {
+  //     throw new BadRequestException('Email is already registered');
+  //   }
+
+  //   const hashedPassword = await bcrypt.hash(password, 10);
+  //   await this.employeeModel.create({
+  //     ...employeeData,
+  //     password: hashedPassword,
+  //   });
+
+  //   return { message: 'Employee registered successfully' };
+  // }
+
+
+  async register(employeeData: Partial<Employee>): Promise<{ message: string }> {
+    const { email, password } = employeeData;
+  
     if (!email || !password) {
       throw new BadRequestException('Email and password are required');
     }
-
+  
     const existingEmployee = await this.employeeModel.findOne({
       where: { email },
     });
+  
     if (existingEmployee) {
       throw new BadRequestException('Email is already registered');
     }
-
+  
     const hashedPassword = await bcrypt.hash(password, 10);
     await this.employeeModel.create({
       ...employeeData,
       password: hashedPassword,
     });
-
-    return { message: 'Employee registered successfully' };
+  
+    // Send the confirmation email
+    const transporter = nodemailer.createTransport({
+      service: 'gmail', // You can change this to your preferred email service
+      auth: {
+        user: 'parthpatel3958@gmail.com', // Your email address
+        pass: 'lfuv vmbm wrks mxgb',  // Your email password (use environment variables to store sensitive data)
+      },
+      tls: {
+        rejectUnauthorized: false, // Disable SSL certificate validation (not recommended for production)
+      },
+    });
+  
+    const mailOptions = {
+      from: 'parthpatel3958@gmail.com', // Sender address
+      to: email,  // Recipient's email
+      subject: 'Registration Successful', // Subject line
+      text: `Dear ${employeeData.name},\n\nYou have successfully registered! Welcome to the team.`, // Body text
+    };
+  
+    try {
+      await transporter.sendMail(mailOptions);
+    } catch (error) {
+      console.error('Error sending email:', error);
+    }
+  
+    return { message: 'Employee registered successfully and confirmation email sent.' };
   }
+
 
   async login(email: string, password: string): Promise<{ token: string }> {
     // Find employee by email
